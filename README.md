@@ -1,11 +1,12 @@
 # 🎬 jellyfin-rating-cover-burner
 
-> **Automatically burn ratings from `.nfo` files into your media covers (`folder.jpg`) — as clean, visible text like `★ 8.7`.**
+**Automatically burn ratings from `.nfo` files into your media covers (`folder.jpg`) — as clean, visible text like `★ 8.7`.**
 
 A lightweight **standalone Python script** (tested on **Windows**) that permanently embeds ratings into your media covers.  
 You can **update**, **revert**, or **re‑run** it safely without damaging your originals.
 
 ---
+
 
 ## ⚙️ What it does
 
@@ -17,12 +18,9 @@ You can **update**, **revert**, or **re‑run** it safely without damaging your 
 > ⚠️ **Important:**  
 > Enable _“Save movie data to \*.nfo files”_ in your Jellyfin **library settings**  
 > → the script needs it to read ratings!
-
 <p align="center">
   <img width="1608" height="969" alt="screenshot" src="https://github.com/user-attachments/assets/a0fb6963-e2c1-484b-add6-9d0adea4b479" />
 </p>
-
----
 
 ## ✨ Features
 
@@ -40,6 +38,12 @@ You can **update**, **revert**, or **re‑run** it safely without damaging your 
 
 ---
 
+## 🚀 Download
+
+👉 [**Releases page**](https://github.com/jakub-antos/jellyfin-rating-cover-burner/releases)
+
+---
+
 ## 🤝 Perfect companion
 
 Works seamlessly with  
@@ -50,7 +54,7 @@ Works seamlessly with
 | 📈 Fetch fresh IMDb ratings → save to `*.nfo` | `jellyfin-imdb-rating-updater` |
 | 🖼️ Burn ratings into your covers | **`jellyfin-rating-cover-burner`** |
 
-Together, they give your entire Jellyfin library clean, visually rated covers 🔥
+Together, they give your entire Jellyfin library clean, visually rated covers on all devices. 🔥
 
 ---
 
