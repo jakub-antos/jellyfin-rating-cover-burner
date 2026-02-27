@@ -243,7 +243,7 @@ def _parse_float_text(s: str) -> Optional[float]:
     if not s:
         return None
     s = s.strip().replace(",", ".")
-    m = re.search(r"(\d+(?:\.?\d+)?)", s)
+    m = re.search(r"(\d+(?:\.\d+)?)", s)
     if not m:
         return None
     try:
@@ -520,7 +520,21 @@ def draw_badge_bottom_right(base_rgb: Image.Image, rating_text: str, cfg: Dict) 
     if y1 < 0:
         y1, y2 = 0, badge_h
 
-    d.rounded_rectangle([x1, y1, x2, y2], radius=cfg["corner_radius"], fill=cfg["bg_rgba"])
+    # Ustawianie rogów na podstawie konfiguracji użytkownika
+    # Kolejność w Pillow to: (lewy-górny, prawy-górny, prawy-dolny, lewy-dolny)
+    corners_config = (
+        cfg["round_left"],   # lewy górny
+        cfg["round_right"],  # prawy górny
+        cfg["round_right"],  # prawy dolny
+        cfg["round_left"]    # lewy dolny
+    )
+
+    d.rounded_rectangle(
+        [x1, y1, x2, y2], 
+        radius=cfg["corner_radius"], 
+        fill=cfg["bg_rgba"],
+        corners=corners_config
+    )
 
     star_cx = x1 + cfg["inner_pad_x"] + cfg["star_size"] / 2.0
     star_cy = y1 + badge_h / 2.0
@@ -719,6 +733,12 @@ def build_cfg_from_user() -> Dict:
     offset_right = parse_int("O ile px odsunąć od prawej krawędzi?", DEFAULTS["offset_right"], min_v=0, max_v=10000)
     offset_bottom = parse_int("O ile px odsunąć od dołu?", DEFAULTS["offset_bottom"], min_v=0, max_v=10000)
 
+    ans_left = input("Czy zaokrąglić lewe boki tła? [T/n]: ").strip().lower()
+    round_left = ans_left not in ("n", "nie", "no")
+
+    ans_right = input("Czy zaokrąglić prawe boki tła? [T/n]: ").strip().lower()
+    round_right = ans_right not in ("n", "nie", "no")
+
     cfg = {
         "offset_right": offset_right,
         "offset_bottom": offset_bottom,
@@ -731,6 +751,8 @@ def build_cfg_from_user() -> Dict:
         "bg_rgba": (0, 0, 0, int(opacity_alpha)),
         "star_color": (*parse_hex_to_rgb(star_hex), 255),
         "text_color": (*parse_hex_to_rgb(text_hex), 255),
+        "round_left": round_left,
+        "round_right": round_right,
     }
     return cfg
 
@@ -739,16 +761,18 @@ def build_cfg_from_user() -> Dict:
 # Main
 # ============================================================
 
-def pause_end():
-    try:
-        input("\nNaciśnij Enter, aby zakończyć...")
-    except Exception:
-        pass
-
-
-def ask_root_path_required() -> Path:
+def ask_root_path_required(default_path: Optional[Path] = None) -> Path:
     while True:
-        s = input(color_hex_text("Wklej adres! Podaj ścieżkę startową do przeszukiwania: ", "#FF8C00")).strip()
+        prompt = "Wklej adres! Podaj ścieżkę startową do przeszukiwania"
+        if default_path:
+            prompt += f" (Enter = {default_path})"
+        prompt += ": "
+        
+        s = input(color_hex_text(prompt, "#FF8C00")).strip()
+        
+        if not s and default_path:
+            return default_path
+            
         if not s:
             warn("Wklej adres!")
             continue
@@ -769,68 +793,86 @@ def ask_root_path_required() -> Path:
 
 def main():
     print(Style.BRIGHT + "Wypalanie oceny w okładce." + Style.RESET_ALL)
+    last_root = None
 
-    print("\n" + color_hex_text("═" * 60, "#FF8C00"))
-    question("Co chcesz zrobić?")
-    print("  1) Umieścić / odświeżyć ocenę na okładkach (folder.jpg)")
-    print("  2) Przywrócić okładki z najnowszej czystej kopii (backup) – bez oceny")
-    print(color_hex_text("═" * 60, "#FF8C00"))
-    choice = input(color_hex_text("Wybór [1/2]: ", "#FF8C00")).strip()
+    while True:
+        print("\n" + color_hex_text("═" * 60, "#FF8C00"))
+        question("Co chcesz zrobić?")
+        print("  1) Umieścić / odświeżyć ocenę na okładkach (folder.jpg)")
+        print("  2) Przywrócić okładki z najnowszej czystej kopii (backup) – bez oceny")
+        print(color_hex_text("═" * 60, "#FF8C00"))
+        choice = input(color_hex_text("Wybór [1/2]: ", "#FF8C00")).strip()
 
-    # Zawsze pytaj o ścieżkę
-    root = ask_root_path_required()
-
-    recursive = input(color_hex_text("Przetwarzać rekursywnie podkatalogi? [T/n]: ", "#FF8C00")).strip().lower() not in ("n", "nie", "no")
-
-    info(f"Katalog startowy: {root}")
-
-    if choice == "2":
-        restored = 0
-        checked = 0
-        for d in iter_target_dirs(root, recursive):
-            checked += 1
-            try:
-                if restore_cover(d):
-                    restored += 1
-            except Exception as e:
-                err(f"[{d}] Błąd przy przywracaniu: {e}")
-        ok(f"Gotowe. Przywrócono w {restored} katalogach (sprawdzono {checked}).")
-        pause_end()
-        return
-
-    if choice != "1":
-        err("Nieprawidłowy wybór.")
-        pause_end()
-        sys.exit(1)
-
-    preferred_field = ask_rating_field_global()
-    cfg = build_cfg_from_user()
-
-    processed = 0
-    checked = 0
-    skipped_no_cover = 0
-    skipped_no_nfo = 0
-
-    for d in iter_target_dirs(root, recursive):
-        checked += 1
-        cover = d / COVER_NAME
-        if not cover.exists():
-            skipped_no_cover += 1
+        if choice not in ("1", "2"):
+            err("Nieprawidłowy wybór.")
             continue
 
-        try:
-            did = process_dir(d, cfg, preferred_field=preferred_field)
-            if did:
-                processed += 1
-            else:
-                skipped_no_nfo += 1
-        except Exception as e:
-            err(f"[{d}] Błąd: {e}")
+        root = ask_root_path_required(last_root)
+        last_root = root
 
-    print()
-    ok(f"Wynik: przerobiono {processed} katalogów.")
-    info(f"Sprawdzono: {checked}. Bez folder.jpg: {skipped_no_cover}. Bez NFO z oceną: {skipped_no_nfo}.")
-    pause_end()
+        recursive_str = input(color_hex_text("Przetwarzać rekursywnie podkatalogi? [T/n]: ", "#FF8C00")).strip().lower()
+        recursive = recursive_str not in ("n", "nie", "no")
+
+        info(f"Katalog startowy: {root}")
+
+        if choice == "2":
+            restored = 0
+            checked = 0
+            for d in iter_target_dirs(root, recursive):
+                checked += 1
+                try:
+                    if restore_cover(d):
+                        restored += 1
+                except Exception as e:
+                    err(f"[{d}] Błąd przy przywracaniu: {e}")
+            
+            ok(f"Gotowe. Przywrócono w {restored} katalogach (sprawdzono {checked}).")
+            try:
+                input("\nNaciśnij Enter, aby powrócić do menu lub zamknij okno skryptu...")
+            except Exception:
+                pass
+            continue
+
+        if choice == "1":
+            preferred_field = ask_rating_field_global()
+            cfg = build_cfg_from_user()
+
+            processed = 0
+            checked = 0
+            skipped_no_cover = 0
+            skipped_no_nfo = 0
+
+            for d in iter_target_dirs(root, recursive):
+                checked += 1
+                cover = d / COVER_NAME
+                if not cover.exists():
+                    skipped_no_cover += 1
+                    continue
+
+                try:
+                    did = process_dir(d, cfg, preferred_field=preferred_field)
+                    if did:
+                        processed += 1
+                    else:
+                        skipped_no_nfo += 1
+                except Exception as e:
+                    err(f"[{d}] Błąd: {e}")
+
+            print()
+            ok(f"Wynik: przerobiono {processed} katalogów.")
+            info(f"Sprawdzono: {checked}. Bez folder.jpg: {skipped_no_cover}. Bez NFO z oceną: {skipped_no_nfo}.")
+            
+            # Wymagany przez Ciebie komunikat testowania i możliwości ponowienia
+            print("\n" + color_hex_text("═" * 60, "#33DD66"))
+            print(color_hex_text("Odśwież Jellyfin i zweryfikuj poprawne umiejscowienie.", "#33DD66"))
+            print(color_hex_text("W przypadku chęci zmiany naciśnij Enter (rozpocznie proces od nowa),", "#33DD66"))
+            print(color_hex_text("lub zamknij skrypt (np. krzyżykiem).", "#33DD66"))
+            print(color_hex_text("═" * 60, "#33DD66"))
+            
+            try:
+                input()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
