@@ -1,5 +1,7 @@
 # jellyfin-rating-cover-burner
 
+<img width="1608" height="969" alt="screenshot" src="https://github.com/user-attachments/assets/a0fb6963-e2c1-484b-add6-9d0adea4b479" />
+
 ## What it does
 Auto burns ratings/criticratings from .nfo files into folder.jpg covers (★ 8.7) 
 
@@ -22,8 +24,9 @@ Single movie OR recursive entire library
 
 Skip folders without ratings (safe)
 
-## Tested images:
-<img width="1608" height="969" alt="screenshot" src="https://github.com/user-attachments/assets/a0fb6963-e2c1-484b-add6-9d0adea4b479" />
+
+
+
 
 ## Perfect companion
 
