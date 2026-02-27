@@ -1,32 +1,59 @@
-# jellyfin-rating-cover-burner
-## What it does
-Automatically burns ratings read from .nfo files into your media covers (folder.jpg) as text like ★ 8.7.
+# 🎬 jellyfin-rating-cover-burner
 
-A standalone Python script (tested on Windows) that permanently embeds ratings into your media covers. It can also restore the original artwork, or update score on reuse.
+> **Automatically burn ratings from `.nfo` files into your media covers (`folder.jpg`) — as clean, visible text like `★ 8.7`.**
 
-⚠️ IMPORTANT: Enable "Save movie data to *.nfo files" in Jellyfin library settings! for script to scrape rating data.
-<img width="1608" height="969" alt="screenshot" src="https://github.com/user-attachments/assets/a0fb6963-e2c1-484b-add6-9d0adea4b479" />
+A lightweight **standalone Python script** (tested on **Windows**) that permanently embeds ratings into your media covers.  
+You can **update**, **revert**, or **re‑run** it safely without damaging your originals.
 
-## Features
-Backups folder_backup.jpg + timestamped copies
+---
 
-Change detection - auto-creates clean backup if Jellyfin updates to a new poster.
+## ⚙️ What it does
 
-Revert function - restore original covers anytime - disable ratings.
+- 🔥 Burns ratings (from `.nfo`) directly onto posters  
+- ♻️ Can restore the original artwork anytime  
+- 🔄 Updates scores automatically if reused  
+- 💾 Keeps backups (`folder_backup.jpg`, timestamped versions)
 
-Ratings visible on ALL devices - TVs, phones, Kodi, Plex, Emby (burned into JPEG)
+> ⚠️ **Important:**  
+> Enable _“Save movie data to \*.nfo files”_ in your Jellyfin **library settings**  
+> → the script needs it to read ratings!
 
-Choose <rating> or <criticrating>
+<p align="center">
+  <img width="1608" height="969" alt="screenshot" src="https://github.com/user-attachments/assets/a0fb6963-e2c1-484b-add6-9d0adea4b479" />
+</p>
 
-Single folder or recursive entire library
+---
 
-Skip folders without ratings (safe)
+## ✨ Features
 
-<img width="220" height="367" alt="Zrzut ekranu 2026-02-27 235752" src="https://github.com/user-attachments/assets/c12c8c95-f069-4882-bf52-a3f6043dd40f" />
+- 🧱 **Automatic backups** – `folder_backup.jpg` + timestamp copies  
+- 🔍 **Change detection** – auto‑creates new clean backup if Jellyfin updates the poster  
+- ♻️ **Revert function** – restore original covers anytime  
+- 🌍 **Universal visibility** – ratings visible across **TVs, phones, Kodi, Plex, Emby** (burned into JPEG)  
+- ⚡ **Flexible scope** – process a single folder **or entire library recursively**  
+- 🛑 **Safe skips** – ignores folders without ratings  
+- 🏷️ Choose between `<rating>` or `<criticrating>`
 
+<p align="center">
+  <img width="220" height="367" alt="Zrzut ekranu 2026-02-27 235752" src="https://github.com/user-attachments/assets/c12c8c95-f069-4882-bf52-a3f6043dd40f" />
+</p>
 
-## Perfect companion
+---
 
-**Works perfectly** with [jellyfin-imdb-rating-updater](https://github.com/voc0der/jellyfin-imdb-rating-updater) 
-- Gets fresh IMDb ratings → saves to *.nfo
-- This script = burns them into covers 🔥
+## 🤝 Perfect companion
+
+Works seamlessly with  
+👉 [**jellyfin-imdb-rating-updater**](https://github.com/voc0der/jellyfin-imdb-rating-updater)
+
+| Task | Tool |
+|------|------|
+| 📈 Fetch fresh IMDb ratings → save to `*.nfo` | `jellyfin-imdb-rating-updater` |
+| 🖼️ Burn ratings into your covers | **`jellyfin-rating-cover-burner`** |
+
+Together, they give your entire Jellyfin library clean, visually rated covers 🔥
+
+---
+
+## 📜 License
+
+[MIT License](https://github.com/jakub-antos/jellyfin-rating-cover-burner/blob/main/LICENSE)
