@@ -28,9 +28,11 @@ You can **update**, **revert**, or **re‑run** it safely without damaging your 
 - 🔍 **Change detection** – auto‑creates new clean backup if Jellyfin updates the poster  
 - ♻️ **Revert function** – restore original covers anytime  
 - 🌍 **Universal visibility** – ratings visible across **TVs, phones, Kodi, Plex, Emby** (burned into JPEG)  
+- 🎨 **Full customization** – scale, position (x,y), background opacity, star/number colors, rounded corners  
 - ⚡ **Flexible scope** – process a single folder **or entire library recursively**  
 - 🛑 **Safe skips** – ignores folders without ratings  
-- 🏷️ Choose between `<rating>` or `<criticrating>`
+- 🏷️ Choose between `<rating>` or `<criticrating>`  
+
 
 <p align="center">
   <img width="220" height="367" alt="Zrzut ekranu 2026-02-27 235752" src="https://github.com/user-attachments/assets/c12c8c95-f069-4882-bf52-a3f6043dd40f" />
@@ -40,24 +42,27 @@ You can **update**, **revert**, or **re‑run** it safely without damaging your 
 
 ## 🚀 Download
 
-👉 [**Releases page**](https://github.com/jakub-antos/jellyfin-rating-cover-burner/releases)
+👉 **Get the latest version here:**  
+**Releases page:**  
+https://github.com/jakub-antos/jellyfin-rating-cover-burner/releases  
+
+Always download the newest release to ensure you have the latest fixes and improvements.
 
 ---
 
-## 🤝 Perfect companion
+### 🤝 Optional: IMDb Ratings
 
-Works seamlessly with  
-👉 [**jellyfin-imdb-rating-updater**](https://github.com/voc0der/jellyfin-imdb-rating-updater)
+If you prefer using **IMDb ratings** instead of the default TMDb ones, you can use:
 
-| Task | Tool |
-|------|------|
-| 📈 Fetch fresh IMDb ratings → save to `*.nfo` | `jellyfin-imdb-rating-updater` |
-| 🖼️ Burn ratings into your covers | **`jellyfin-rating-cover-burner`** |
-
-Together, they give your entire Jellyfin library clean, visually rated covers on all devices. 🔥
+**jellyfin-imdb-rating-updater**  https://github.com/voc0der/jellyfin-imdb-rating-updater  
 
 ---
 
 ## 📜 License
 
+This project is licensed under the **MIT License**.
+
+See the full license text here:  
 [MIT License](https://github.com/jakub-antos/jellyfin-rating-cover-burner/blob/main/LICENSE)
+
+---
