@@ -51,7 +51,7 @@ def ensure_deps():
         hint = DEPS_HINTS.get(pip_name, pip_name)
         if pip_name == "pillow":
             print(f"  • {hint}")
-            print("    (Note: you install 'pillow', but code imports as 'PIL'.)")
+            print("    (Note: install 'pillow', but import in code is as 'PIL'.)")
         else:
             print(f"  • {hint}")
 
@@ -211,6 +211,7 @@ def normalize_hex(s: str, default_hex: str) -> str:
 
 
 def ask_hex(prompt: str, default_hex: str) -> str:
+    star_default = color_hex_text(DEFAULT_HEX, DEFAULT_HEX)
     s = input(f"{prompt} [{default_hex}]: ").strip()
     return normalize_hex(s, default_hex)
 
@@ -230,7 +231,7 @@ def ask_rating_field_global() -> str:
 # ============================================================
 
 def round_half_up_1_decimal(x: float) -> float:
-    """Round to 1 decimal place: 5 and above rounds up"""
+    """Round to 1 decimal place: 5 and up rounds up"""
     return round(x, 1)
 
 
@@ -242,7 +243,7 @@ def _parse_float_text(s: str) -> Optional[float]:
     if not s:
         return None
     s = s.strip().replace(",", ".")
-    m = re.search(r"(\d+(?:\.?\d+)?)", s)
+    m = re.search(r"(\d+(?:\.\d+)?)", s)
     if not m:
         return None
     try:
@@ -519,7 +520,21 @@ def draw_badge_bottom_right(base_rgb: Image.Image, rating_text: str, cfg: Dict) 
     if y1 < 0:
         y1, y2 = 0, badge_h
 
-    d.rounded_rectangle([x1, y1, x2, y2], radius=cfg["corner_radius"], fill=cfg["bg_rgba"])
+    # Set corners based on user configuration
+    # Pillow order: (top-left, top-right, bottom-right, bottom-left)
+    corners_config = (
+        cfg["round_left"],   # top-left
+        cfg["round_right"],  # top-right
+        cfg["round_right"],  # bottom-right
+        cfg["round_left"]    # bottom-left
+    )
+
+    d.rounded_rectangle(
+        [x1, y1, x2, y2], 
+        radius=cfg["corner_radius"], 
+        fill=cfg["bg_rgba"],
+        corners=corners_config
+    )
 
     star_cx = x1 + cfg["inner_pad_x"] + cfg["star_size"] / 2.0
     star_cy = y1 + badge_h / 2.0
@@ -652,7 +667,7 @@ def process_dir(d: Path, cfg: Dict, preferred_field: str) -> bool:
 
     base = pick_base_cover_for_render(d, cover)
     if base is None:
-        warn(f"[{d}] No clean cover for rendering (folder.jpg has marker, no clean backup).")
+        warn(f"[{d}] No clean cover for generation (folder.jpg has marker, no clean backup available).")
         warn("Skipping to avoid overlaying rating on rating.")
         return False
 
@@ -718,6 +733,12 @@ def build_cfg_from_user() -> Dict:
     offset_right = parse_int("Pixels from right edge?", DEFAULTS["offset_right"], min_v=0, max_v=10000)
     offset_bottom = parse_int("Pixels from bottom edge?", DEFAULTS["offset_bottom"], min_v=0, max_v=10000)
 
+    ans_left = input("Round left sides of background? [Y/n]: ").strip().lower()
+    round_left = ans_left not in ("n", "no")
+
+    ans_right = input("Round right sides of background? [Y/n]: ").strip().lower()
+    round_right = ans_right not in ("n", "no")
+
     cfg = {
         "offset_right": offset_right,
         "offset_bottom": offset_bottom,
@@ -730,6 +751,8 @@ def build_cfg_from_user() -> Dict:
         "bg_rgba": (0, 0, 0, int(opacity_alpha)),
         "star_color": (*parse_hex_to_rgb(star_hex), 255),
         "text_color": (*parse_hex_to_rgb(text_hex), 255),
+        "round_left": round_left,
+        "round_right": round_right,
     }
     return cfg
 
@@ -738,16 +761,18 @@ def build_cfg_from_user() -> Dict:
 # Main
 # ============================================================
 
-def pause_end():
-    try:
-        input("\nPress Enter to exit...")
-    except Exception:
-        pass
-
-
-def ask_root_path_required() -> Path:
+def ask_root_path_required(default_path: Optional[Path] = None) -> Path:
     while True:
-        s = input(color_hex_text("Paste path! Enter starting directory path to scan: ", "#FF8C00")).strip()
+        prompt = "Paste path! Enter starting directory to scan"
+        if default_path:
+            prompt += f" (Enter = {default_path})"
+        prompt += ": "
+        
+        s = input(color_hex_text(prompt, "#FF8C00")).strip()
+        
+        if not s and default_path:
+            return default_path
+            
         if not s:
             warn("Paste path!")
             continue
@@ -767,69 +792,87 @@ def ask_root_path_required() -> Path:
 
 
 def main():
-    print(Style.BRIGHT + "Burning rating into cover." + Style.RESET_ALL)
+    print(Style.BRIGHT + "Burn rating into cover art." + Style.RESET_ALL)
+    last_root = None
 
-    print("\n" + color_hex_text("═" * 60, "#FF8C00"))
-    question("What do you want to do?")
-    print("  1) Place/refresh rating on covers (folder.jpg)")
-    print("  2) Restore covers from latest clean backup – no rating")
-    print(color_hex_text("═" * 60, "#FF8C00"))
-    choice = input(color_hex_text("Choice [1/2]: ", "#FF8C00")).strip()
+    while True:
+        print("\n" + color_hex_text("═" * 60, "#FF8C00"))
+        question("What do you want to do?")
+        print("  1) Place/refresh rating on covers (folder.jpg)")
+        print("  2) Restore covers from latest clean backup – no rating")
+        print(color_hex_text("═" * 60, "#FF8C00"))
+        choice = input(color_hex_text("Choice [1/2]: ", "#FF8C00")).strip()
 
-    # Always ask for path
-    root = ask_root_path_required()
-
-    recursive = input(color_hex_text("Process subdirectories recursively? [Y/n]: ", "#FF8C00")).strip().lower() not in ("n", "no")
-
-    info(f"Starting directory: {root}")
-
-    if choice == "2":
-        restored = 0
-        checked = 0
-        for d in iter_target_dirs(root, recursive):
-            checked += 1
-            try:
-                if restore_cover(d):
-                    restored += 1
-            except Exception as e:
-                err(f"[{d}] Restore error: {e}")
-        ok(f"Done. Restored {restored} directories (checked {checked}).")
-        pause_end()
-        return
-
-    if choice != "1":
-        err("Invalid choice.")
-        pause_end()
-        sys.exit(1)
-
-    preferred_field = ask_rating_field_global()
-    cfg = build_cfg_from_user()
-
-    processed = 0
-    checked = 0
-    skipped_no_cover = 0
-    skipped_no_nfo = 0
-
-    for d in iter_target_dirs(root, recursive):
-        checked += 1
-        cover = d / COVER_NAME
-        if not cover.exists():
-            skipped_no_cover += 1
+        if choice not in ("1", "2"):
+            err("Invalid choice.")
             continue
 
-        try:
-            did = process_dir(d, cfg, preferred_field=preferred_field)
-            if did:
-                processed += 1
-            else:
-                skipped_no_nfo += 1
-        except Exception as e:
-            err(f"[{d}] Error: {e}")
+        root = ask_root_path_required(last_root)
+        last_root = root
 
-    print()
-    ok(f"Result: processed {processed} directories.")
-    info(f"Checked: {checked}. No folder.jpg: {skipped_no_cover}. No NFO with rating: {skipped_no_nfo}.")
-    pause_end()
+        recursive_str = input(color_hex_text("Process subdirectories recursively? [Y/n]: ", "#FF8C00")).strip().lower()
+        recursive = recursive_str not in ("n", "no")
+
+        info(f"Starting directory: {root}")
+
+        if choice == "2":
+            restored = 0
+            checked = 0
+            for d in iter_target_dirs(root, recursive):
+                checked += 1
+                try:
+                    if restore_cover(d):
+                        restored += 1
+                except Exception as e:
+                    err(f"[{d}] Restore error: {e}")
+            
+            ok(f"Done. Restored {restored} directories (checked {checked}).")
+            try:
+                input("\nPress Enter to return to menu or close script window...")
+            except Exception:
+                pass
+            continue
+
+        if choice == "1":
+            preferred_field = ask_rating_field_global()
+            cfg = build_cfg_from_user()
+
+            processed = 0
+            checked = 0
+            skipped_no_cover = 0
+            skipped_no_nfo = 0
+
+            for d in iter_target_dirs(root, recursive):
+                checked += 1
+                cover = d / COVER_NAME
+                if not cover.exists():
+                    skipped_no_cover += 1
+                    continue
+
+                try:
+                    did = process_dir(d, cfg, preferred_field=preferred_field)
+                    if did:
+                        processed += 1
+                    else:
+                        skipped_no_nfo += 1
+                except Exception as e:
+                    err(f"[{d}] Error: {e}")
+
+            print()
+            ok(f"Result: processed {processed} directories.")
+            info(f"Checked: {checked}. No folder.jpg: {skipped_no_cover}. No NFO with rating: {skipped_no_nfo}.")
+            
+            # Required testing message and restart option
+            print("\n" + color_hex_text("═" * 60, "#33DD66"))
+            print(color_hex_text("Refresh Jellyfin and verify correct placement.", "#33DD66"))
+            print(color_hex_text("If you want to change something press Enter (will restart process),", "#33DD66"))
+            print(color_hex_text("or close script (e.g. X button).", "#33DD66"))
+            print(color_hex_text("═" * 60, "#33DD66"))
+            
+            try:
+                input()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
